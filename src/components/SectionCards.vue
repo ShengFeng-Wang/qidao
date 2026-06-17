@@ -122,6 +122,37 @@
   .cards-container {
     grid-template-columns: 1fr 1fr;
   }
+
+  /* 1024 以下:卡片改用純牛皮紙 card-bg1 */
+  .card {
+    min-height: auto;
+    background-image: url('@/assets/images/card-bg1.png') !important;
+    background-size: cover;
+    background-position: center;
+    border: 1px solid var(--gold);
+    border-radius: 6px;
+    padding: 28px 24px 36px;
+  }
+
+  /* 牛皮紙是淺色底,文字改深咖啡才看得清 */
+  .card-title {
+    padding-top: 0px;
+    margin-bottom: 8px;
+    color: var(--coffee);
+  }
+
+  .card-en {
+    color: var(--coffee);
+    opacity: 0.7;
+  }
+
+  .card:nth-child(2) .card-title {
+    color: var(--coffee);
+  }
+
+  .card:nth-child(2) .card-en {
+    color: var(--coffee);
+  }
 }
 
 @media (max-width: 768px) {
@@ -134,9 +165,33 @@
     gap: 30px;
   }
 
-  .card {
-    min-height: auto;
-    padding-bottom: 30px;
+  /* 最新章節(第一欄)手機版加大、更突出 */
+  .card:nth-child(1) {
+    min-height: 480px;
+    padding: 20px 28px 50px;
+  }
+
+  .card:nth-child(1) .card-title {
+    font-size: 32px;
+  }
+
+  /* 第二、三欄手機版較小 */
+  .card:nth-child(2) {
+    min-height: 360px;
+    padding: 20px 28px 50px;
+  }
+
+  .card:nth-child(2) .card-title {
+    font-size: 32px;
+  }
+
+  .card:nth-child(3) {
+    min-height: 360px;
+    padding: 20px 28px 50px;
+  }
+
+  .card:nth-child(3) .card-title {
+    font-size: 32px;
   }
 }
 </style>
