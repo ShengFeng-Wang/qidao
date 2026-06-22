@@ -11,9 +11,10 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
-  server: {
+   server: {
+    host: true,                          // 允許區網/隧道連入
+    allowedHosts: ['.trycloudflare.com'], // 允許 Cloudflare 隧道網址
     proxy: {
-      // 前端打 /api/... 會被轉到後端 3001,避免跨域
       '/api': {
         target: 'http://localhost:3001',
         changeOrigin: true,
