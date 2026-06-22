@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { PanelLeftClose, PanelLeftOpen } from 'lucide-vue-next'
 import { useThemeStore } from '@/stores/theme'
 import { useReader, useReaderPrefs } from '@/composables/useReader'
+import { useIsMobile } from '@/composables/useIsMobile'
 import { fetchBook, emptyBook, DEFAULT_BOOK_ID } from '@/data/loadNovel'
 import ReaderTopbar from '@/components/reader/ReaderTopbar.vue'
 import ReaderSidebar from '@/components/reader/ReaderSidebar.vue'
@@ -13,6 +14,7 @@ import ReaderToolbar from '@/components/reader/ReaderToolbar.vue'
 
 const router = useRouter()
 const themeStore = useThemeStore()
+const { isMobile } = useIsMobile()
 
 const book = ref(emptyBook())
 const loading = ref(true)
@@ -22,6 +24,9 @@ const { current, hasPrev, hasNext, goPrev, goNext, goTo } = useReader(book)
 const { fontScale, pageMode, fontDown, fontUp, setPageMode } = useReaderPrefs()
 
 const contentFontSize = computed(() => `${(fontScale.value / 100) * 1.25}rem`)
+
+// 手機一律用滑動模式(翻頁在窄螢幕體驗差);桌機沿用使用者選擇
+const effectivePageMode = computed(() => (isMobile.value ? 'scroll' : pageMode.value))
 
 async function load() {
   loading.value = true
@@ -41,9 +46,28 @@ function editChapter(chapterId: string) {
   router.push({ path: '/upload', query: { edit: chapterId } })
 }
 
+// === 側欄開合 ===
+// 桌機預設展開;手機預設收起(進來先看內文,目錄當抽屜)
 const sidebarOpen = ref(true)
+// 進入頁面與切換手機/桌機時,套用合理預設
+watch(
+  isMobile,
+  (m) => {
+    sidebarOpen.value = !m
+  },
+  { immediate: true },
+)
 function toggleSidebar() {
   sidebarOpen.value = !sidebarOpen.value
+}
+
+// 手機:選完章 / 點遮罩 → 自動關抽屜
+function selectChapter(chapterId: string) {
+  goTo(chapterId)
+  if (isMobile.value) sidebarOpen.value = false
+}
+function closeSidebarOnMobile() {
+  if (isMobile.value) sidebarOpen.value = false
 }
 
 const expandedVolumes = ref<Set<string>>(new Set())
@@ -78,13 +102,20 @@ function toggleVolume(id: string) {
     </div>
 
     <div v-else class="body">
+      <!-- 手機抽屜遮罩:側欄開著時出現,點一下關閉 -->
+      <div
+        v-if="isMobile && sidebarOpen"
+        class="sidebar-overlay"
+        @click="closeSidebarOnMobile"
+      ></div>
+
       <ReaderSidebar
         :book="book"
         :open="sidebarOpen"
         :current-chapter-id="current?.chapter.id"
         :expanded-volumes="expandedVolumes"
         @toggle-volume="toggleVolume"
-        @select-chapter="goTo"
+        @select-chapter="selectChapter"
         @edit-chapter="editChapter"
       />
 
@@ -95,7 +126,7 @@ function toggleVolume(id: string) {
         </button>
 
         <ReaderScroll
-          v-if="pageMode === 'scroll'"
+          v-if="effectivePageMode === 'scroll'"
           :current="current"
           :font-size="contentFontSize"
         />
@@ -117,6 +148,7 @@ function toggleVolume(id: string) {
           :is-dark="themeStore.isDark"
           :has-prev="hasPrev"
           :has-next="hasNext"
+          :is-mobile="isMobile"
           @font-down="fontDown"
           @font-up="fontUp"
           @set-page-mode="setPageMode"
@@ -137,7 +169,7 @@ function toggleVolume(id: string) {
   overflow: hidden;
 }
 
-.body { flex: 1; display: flex; min-height: 0; }
+.body { flex: 1; display: flex; min-height: 0; position: relative; }
 
 .reader-state {
   flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px;
@@ -152,6 +184,19 @@ function toggleVolume(id: string) {
 
 .reader.sidebar-closed :deep(.sidebar) {
   flex-basis: 0; width: 0; opacity: 0; overflow: hidden; border-right-color: transparent;
+}
+
+/* 手機抽屜遮罩 */
+.sidebar-overlay {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 35;             /* 在側欄(40)之下、內容之上 */
+  animation: overlay-fade 0.2s ease;
+}
+@keyframes overlay-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .content-wrap {
@@ -171,4 +216,21 @@ function toggleVolume(id: string) {
   color: #cda869; cursor: pointer; transition: all 0.2s;
 }
 .sidebar-toggle:hover { color: #f0d89a; border-color: var(--gold); }
+
+/* 平板/手機:抽屜收合改用 transform 滑出(而非壓寬度),才不會被壓扁變形 */
+@media (max-width: 1024px) {
+  /* 收合時還原寬度(交回 .sidebar 自身的斷點設定),只用位移把抽屜滑出左側 */
+  .reader.sidebar-closed :deep(.sidebar) {
+    width: revert; flex-basis: revert; opacity: 1; overflow-y: auto;
+    transform: translateX(-100%);
+    border-right-color: rgba(184,138,59,0.35);
+  }
+}
+
+/* 手機:內文不再為側欄讓寬(抽屜是浮層),收合按鈕放大好點 */
+@media (max-width: 768px) {
+  .content-wrap :deep(.page) { max-width: 100%; }
+  .reader.sidebar-closed .content-wrap :deep(.page) { max-width: 100%; }
+  .sidebar-toggle { width: 42px; height: 42px; }
+}
 </style>

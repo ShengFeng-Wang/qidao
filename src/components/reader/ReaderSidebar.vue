@@ -124,7 +124,21 @@ const emit = defineEmits<{
 .collapse-enter-from, .collapse-leave-to { opacity: 0; max-height: 0; }
 .collapse-enter-to, .collapse-leave-from { opacity: 1; max-height: 1000px; }
 
+/* === 平板 / 手機:側欄變成從左滑出的抽屜 === */
 @media (max-width: 1024px) {
-  .sidebar { position: absolute; top: 64px; bottom: 0; left: 0; z-index: 40; box-shadow: 4px 0 24px rgba(0,0,0,0.5); }
+  .sidebar {
+    position: absolute; top: 64px; bottom: 0; left: 0; z-index: 40;
+    box-shadow: 4px 0 24px rgba(0,0,0,0.5);
+    /* 用 transform 滑入滑出,比改 width 更順 */
+    transform: translateX(0);
+    transition: transform 0.3s ease;
+  }
+}
+
+/* === 手機:抽屜不要佔滿、最寬 85vw,收合時整個滑出左側 === */
+@media (max-width: 768px) {
+  .sidebar {
+    flex-basis: 85vw; width: 85vw; max-width: 340px;
+  }
 }
 </style>
