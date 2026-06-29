@@ -1,6 +1,5 @@
 import type { Book } from '@/types/novel'
 
-// 執行時打後端 API。dev 透過 vite.config 的 proxy 轉到 http://localhost:3001
 const API_BASE = '/api'
 
 export const DEFAULT_BOOK_ID = 'loen'
@@ -18,20 +17,31 @@ export async function fetchBook(id: string = DEFAULT_BOOK_ID): Promise<Book> {
   return (await res.json()) as Book
 }
 
+// 卷清單(上傳頁下拉用)
+export interface VolumeBrief {
+  order: number
+  title: string
+}
+export async function fetchVolumes(bookId: string = DEFAULT_BOOK_ID): Promise<VolumeBrief[]> {
+  const res = await fetch(`${API_BASE}/books/${bookId}/volumes`)
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error(data.error || `讀取失敗(${res.status})`)
+  return (data.volumes ?? []) as VolumeBrief[]
+}
+
+// number 已不再需要(後端依 index 自動產生中文章節號)
 export interface ChapterPayload {
   volumeOrder: number
   volumeTitle: string
   chapterIndex: number
-  number?: string
   title: string
   content: string
 }
 
-export interface ChapterDetail extends Required<ChapterPayload> {
+export interface ChapterDetail extends ChapterPayload {
   file: string
 }
 
-// 讀單一章節(編輯帶入用)
 export async function fetchChapter(
   chapterId: string,
   bookId: string = DEFAULT_BOOK_ID,
@@ -42,7 +52,6 @@ export async function fetchChapter(
   return data as ChapterDetail
 }
 
-// 新增章節
 export async function uploadChapter(
   payload: ChapterPayload,
   bookId: string = DEFAULT_BOOK_ID,
@@ -57,7 +66,6 @@ export async function uploadChapter(
   return data
 }
 
-// 更新章節
 export async function updateChapter(
   chapterId: string,
   payload: ChapterPayload,
